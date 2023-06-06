@@ -160,23 +160,25 @@ UINT32 getMSB(
 // Expr declaration
 Expr::Expr(Kind kind, UINT32 bits)
   : DependencyNode()
-  , kind_(kind)
-  , bits_(bits)
-  , children_()
+  // , kind_(kind)
+  // , bits_(bits)
+  // , children_()
   , context_(*g_z3_context)
   , expr_(NULL)
-  , hash_(NULL)
+  // , hash_(NULL)
   , range_sets{}
-  , isConcrete_(true)
-  , depth_(-1)
+  // , isConcrete_(true)
+  // , depth_(-1)
   , deps_(NULL)
   , leading_zeros_((UINT)-1)
   , evaluation_(NULL)
-  {}
+  {
+
+  }
 
 Expr::~Expr() {
   delete expr_;
-  delete hash_;
+  // delete hash_;
   delete range_sets[0];
   delete range_sets[1];
   delete deps_;
@@ -190,10 +192,13 @@ DependencySet Expr::computeDependencies() {
 }
 
 XXH32_hash_t Expr::hash() {
+  /*
   if (hash_ == NULL) {
     XXH32_state_t state;
     XXH32_reset(&state, 0); // seed = 0
+    Kind kind_ = kind();
     XXH32_update(&state, &kind_, sizeof(kind_));
+    uint32_t bits_ = bits();
     XXH32_update(&state, &bits_, sizeof(bits_));
     for (INT32 i = 0; i < num_children(); i++) {
       XXH32_hash_t h = children_[i]->hash();
@@ -203,9 +208,12 @@ XXH32_hash_t Expr::hash() {
     hash_ = new XXH32_hash_t(XXH32_digest(&state));
   }
   return *hash_;
+  */
+  return (XXH32_hash_t) hashExpr(shadow);
 }
 
 INT32 Expr::depth() {
+  /*
   if (depth_ == -1) {
     INT32 max_depth = 0;
     for (INT32 i = 0; i < num_children(); i++) {
@@ -216,6 +224,8 @@ INT32 Expr::depth() {
     depth_ = max_depth + 1;
   }
   return depth_;
+  */
+  return getDepth(shadow);
 }
 
 
@@ -248,7 +258,7 @@ void Expr::simplify() {
         // If an expression is relational expression,
         // then simplify children to reuse the simplified expressions
         for (INT32 i = 0; i < num_children(); i++)
-          children_[i]->simplify();
+          getChild(i)->simplify();
       }
       else {
         if (expr_ == NULL) {
@@ -265,7 +275,7 @@ void Expr::printChildren(ostream& os, bool start, UINT depth) const {
       start = false;
     else
       os << ", ";
-    children_[i]->print(os, depth + 1);
+    getChild(i)->print(os, depth + 1);
   }
 }
 
@@ -380,7 +390,7 @@ void Expr::addConstraint(Kind kind, llvm::APInt rhs, llvm::APInt adjustment) {
 }
 
 void ConstantExpr::print(ostream& os, UINT depth) const {
-    os << "0x" << LLVMIntToString(value_, 16);
+    os << "0x" << LLVMIntToString(value(), 16);
 }
 
 void ConcatExpr::print(ostream& os, UINT depth) const {
@@ -390,7 +400,7 @@ void ConcatExpr::print(ostream& os, UINT depth) const {
       start = false;
     else
       os << " | ";
-    children_[i]->print(os, depth + 1);
+    getChild(i)->print(os, depth + 1);
   }
 }
 

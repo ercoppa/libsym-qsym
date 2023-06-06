@@ -27,11 +27,11 @@ namespace qsym {
 
   ExprRef UnaryExpr::evaluateImpl() {
     ExprRef c0 = getChild(0)->evaluate();
-    return checkExpr(CEB->createUnaryExpr(kind_, c0));
+    return checkExpr(CEB->createUnaryExpr(kind(), c0));
   }
 
   ExprRef ReadExpr::evaluateImpl() {
-    return std::make_shared<ConstantExpr>(g_solver->getInput(index_), 8);
+    return std::make_shared<ConstantExpr>(g_solver->getInput(index()), 8);
   }
 
   ExprRef ConstantExpr::evaluateImpl() {
@@ -45,22 +45,22 @@ namespace qsym {
   ExprRef BinaryExpr::evaluateImpl() {
     ExprRef c0 = getChild(0)->evaluate();
     ExprRef c1 = getChild(1)->evaluate();
-    return checkExpr(CEB->createBinaryExpr(kind_, c0, c1));
+    return checkExpr(CEB->createBinaryExpr(kind(), c0, c1));
   }
 
   ExprRef ExtractExpr::evaluateImpl() {
     ExprRef c0 = getChild(0)->evaluate();
-    return checkExpr(CEB->createExtract(c0, index_, bits_));
+    return checkExpr(CEB->createExtract(c0, index(), bits()));
   }
 
   ExprRef ZExtExpr::evaluateImpl() {
     ExprRef c0 = getChild(0)->evaluate();
-    return checkExpr(CEB->createZExt(c0, bits_));
+    return checkExpr(CEB->createZExt(c0, bits()));
   }
 
   ExprRef SExtExpr::evaluateImpl() {
     ExprRef c0 = getChild(0)->evaluate();
-    return checkExpr(CEB->createSExt(c0, bits_));
+    return checkExpr(CEB->createSExt(c0, bits()));
   }
 
   ExprRef IteExpr::evaluateImpl() {

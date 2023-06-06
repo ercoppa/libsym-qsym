@@ -83,12 +83,40 @@ if __name__ == '__main__':
     # generate BaseExprBuilder
     for func, name, args_name in read_def("BASE"):
       expr_name = name[len("create"):] + "Expr"
+      kind = name[len("create"):]
+      if kind == "Bool":
+        libsym_builder = "void* shadow = buildConcreteBoolExpression(nullptr, %s);" % (args_name[0],)
+      elif kind == "Constant":
+        if args_name[0] == 'value':
+          arg0 = args_name[0]
+        else:
+          arg0 = '%s.getZExtValue()' % args_name[0]
+        libsym_builder = "void* shadow = buildConcreteIntegerExpression(nullptr, %s, %s);" % (arg0, args_name[1])
+      elif kind == 'ZExt' or kind == 'SExt':
+        libsym_builder = 'void* sbits = buildConcreteIntegerExpression(nullptr, %s, 64);\n\t' % (args_name[1],)
+        libsym_builder += 'void* shadow = buildBinaryExpression(nullptr, %s, %s->getShadow(), sbits);' % (kind, args_name[0])
+      elif len(args_name) == 1:
+        libsym_builder = "void* shadow = buildUnaryExpression(nullptr, %s, %s->getShadow());" % (kind, args_name[0])
+      elif len(args_name) == 2:
+        libsym_builder = "void* shadow = buildBinaryExpression(nullptr, %s, %s->getShadow(), %s->getShadow());" % (kind, args_name[0], args_name[1])
+      elif len(args_name) == 3:
+        libsym_builder = "void* shadow = buildTernaryExpression(nullptr, %s, %s->getShadow(), %s->getShadow(), %s->getShadow());" % (kind, args_name[0], args_name[1], args_name[2])
+      else:
+        assert False
+      libsym_builder += "\n"
+      libsym_builder += "\tKind kind = (Kind) getKind(shadow);\n"
+      libsym_builder += "\tExprRef ref = kind == %s\n" % kind
+      libsym_builder += "\t\t? std::make_shared<%s>(%s)\n" % (expr_name, ', '.join(args_name))
+      libsym_builder += "\t\t: generate(kind, (ExpressionRef*) shadow);\n"
+      libsym_builder += "\tref.get()->setShadow(shadow);\n"
+      libsym_builder += "\tsetShadowExpr(shadow, ref);\n"
+
       code.append(
 """ExprRef BaseExprBuilder::{0} {{
-\tExprRef ref = std::make_shared<{1}>({2});
+\t{1}
 \taddUses(ref);
 \treturn ref;
-}}\n\n""".format(func, expr_name, ', '.join(args_name)))
+}}\n\n""".format(func, libsym_builder))
 
     # generate CacheExprBuilder
     for func, name, args_name in read_def("CACHE"):

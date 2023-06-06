@@ -78,7 +78,7 @@ public:
   // {BEGIN:BASE}
   ExprRef createBool(bool b) override;
   ExprRef createConstant(ADDRINT value, UINT32 bits) override;
-  ExprRef createConstant(llvm::APInt value, UINT32 bits) override;
+  ExprRef createConstant(llvm::APInt lvalue, UINT32 bits) override;
   ExprRef createConcat(ExprRef l, ExprRef r) override;
   ExprRef createZExt(ExprRef e, UINT32 bits) override;
   ExprRef createSExt(ExprRef e, UINT32 bits) override;

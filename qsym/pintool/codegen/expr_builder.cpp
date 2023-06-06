@@ -3,14 +3,18 @@
 #include "call_stack_manager.h"
 #include <llvm/ADT/StringRef.h>
 
+#include "libsym.h"
+#include "service.pb.h"
+
 namespace qsym {
 
 namespace {
 const INT32 kComplexityThresholdForSimplify = 16;
 
 void addUses(ExprRef e) {
-  for (INT i = 0; i < e->num_children(); i++)
+  for (INT i = 0; i < e->num_children(); i++) {
     e->getChild(i)->addUse(e);
+  }
 }
 
 // utility function for checking values
@@ -171,13 +175,206 @@ ExprRef ExprBuilder::createTrunc(ExprRef e, UINT32 bits) {
   return createExtract(e, 0, bits);
 }
 
+ExprRef generate(Kind kind, ExpressionRef* e) {
+  switch(kind) {
+    case Read: {
+      uint32_t index = getReadIndex(e);
+      return std::make_shared<ReadExpr>(index);
+    }
+    case Bool: {
+      bool value = getBoolValue(e);
+      return std::make_shared<BoolExpr>(value);
+    }
+    case Constant: {
+      uint64_t value = getConcreteIntegerValue(e);
+      uint32_t bits = getBits(e);
+      return std::make_shared<ConstantExpr>(value, bits);
+    }
+    case Extract: {
+      ExprRef child = getChildExpr(e, 0);
+      uint32_t index = getExtractIndex(e);
+      uint32_t bits = getExtractBits(e);
+      return std::make_shared<ExtractExpr>(child, index, bits);
+    }
+    case Concat: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<ConcatExpr>(first, second);
+    }
+    case ZExt: {
+      ExprRef first = getChildExpr(e, 0);
+      uint32_t bits = getZExtBits(e);
+      return std::make_shared<ZExtExpr>(first, bits);
+    }
+    case SExt: {
+      ExprRef first = getChildExpr(e, 0);
+      uint32_t bits = getSExtBits(e);
+      return std::make_shared<SExtExpr>(first, bits);
+    }
+    case Add: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<AddExpr>(first, second);
+    }
+    case Sub: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<SubExpr>(first, second);
+    }
+    case Mul: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<MulExpr>(first, second);
+    }
+    case UDiv: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<UDivExpr>(first, second);
+    }
+    case SDiv: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<SDivExpr>(first, second);
+    }
+    case URem: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<URemExpr>(first, second);
+    }
+    case SRem: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<SRemExpr>(first, second);
+    }
+    case Neg: {
+      ExprRef first = getChildExpr(e, 0);
+      return std::make_shared<NegExpr>(first);
+    }
+    case Not: {
+      ExprRef first = getChildExpr(e, 0);
+      return std::make_shared<NotExpr>(first);
+    }
+    case And: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<AndExpr>(first, second);
+    }
+    case Or: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<OrExpr>(first, second);
+    }
+    case Xor: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<XorExpr>(first, second);
+    }
+    case Shl: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<ShlExpr>(child, second);
+    }
+    case AShr: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<AShrExpr>(child, second);
+    }
+    case LShr: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<LShrExpr>(child, second);
+    }
+    case Equal: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<EqualExpr>(child, second);
+    }
+    case Distinct: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<DistinctExpr>(child, second);
+    }
+    case Ult: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<UltExpr>(child, second);
+    }
+    case Ule: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<UleExpr>(child, second);
+    }
+    case Ugt: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<UgtExpr>(child, second);
+    }
+    case Uge: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<UgeExpr>(child, second);
+    }
+    case Slt: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<SltExpr>(child, second);
+    }
+    case Sle: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<SleExpr>(child, second);
+    }
+    case Sgt: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<SgtExpr>(child, second);
+    }
+    case Sge: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<SgeExpr>(child, second);
+    }
+    case LOr: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<LOrExpr>(child, second);
+    }
+    case LAnd: {
+      ExprRef child = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      return std::make_shared<LAndExpr>(child, second);
+    }
+    case LNot: {
+      ExprRef child = getChildExpr(e, 0);
+      return std::make_shared<LNotExpr>(child);
+    }
+    case Ite: {
+      ExprRef first = getChildExpr(e, 0);
+      ExprRef second = getChildExpr(e, 1);
+      ExprRef third = getChildExpr(e, 2);
+      return std::make_shared<IteExpr>(first, second, third);
+    }
+    default: {
+      printf("Unhandled: kind=%d\n", kind);
+      abort();
+    }
+  }
+}
+
 ExprRef BaseExprBuilder::createRead(ADDRINT off) {
   static std::vector<ExprRef> cache;
   if (off >= cache.size())
     cache.resize(off + 1);
 
-  if (cache[off] == NULL)
-    cache[off] = std::make_shared<ReadExpr>(off);
+  if (cache[off] == NULL) {
+    void* shadow = buildSymbolicIntegerByteExpression(nullptr, off);
+    Kind kind = (Kind) getKind(shadow);
+    cache[off] = kind == Read 
+      ? std::make_shared<ReadExpr>(off)
+      : generate(kind, (ExpressionRef*) shadow);
+    cache[off].get()->setShadow(shadow);
+    setShadowExpr(shadow, cache[off]);
+  }
 
   return cache[off];
 }
@@ -186,7 +383,19 @@ ExprRef BaseExprBuilder::createExtract(ExprRef e, UINT32 index, UINT32 bits)
 {
   if (bits == e->bits())
     return e;
-  ExprRef ref = std::make_shared<ExtractExpr>(e, index, bits);
+
+  void* from = buildConcreteIntegerExpression(nullptr, index, 64);
+  void* sbits = buildConcreteIntegerExpression(nullptr, bits, 64);
+  void* shadow = buildTernaryExpression(nullptr, Extract, e->getShadow(), from, sbits);
+
+  Kind kind = (Kind) getKind(shadow);
+  ExprRef ref = kind == Extract 
+    ? std::make_shared<ExtractExpr>(e, index, bits)
+    : generate(kind, (ExpressionRef*) shadow);
+
+  ref.get()->setShadow(shadow);
+  setShadowExpr(shadow, ref);
+
   addUses(ref);
   return ref;
 }
