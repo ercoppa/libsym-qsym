@@ -2,14 +2,17 @@
 #define H_LIBSYM
 
 #include <cstdint>
+
 #include "shm_shared.h"
+#undef N
+
 #include "expr_sub.h"
 
 void setShadowExpr(void* expr, qsym::ExprRef ref);
 
 void* buildConcreteIntegerExpression(qsym::ExprRef ref, uint64_t value, uint32_t bits);
 void* buildConcreteBoolExpression(qsym::ExprRef ref, bool value);
-void* buildSymbolicIntegerByteExpression(qsym::ExprRef ref, uint32_t index);
+void* buildSymbolicIntegerExpression(qsym::ExprRef ref, uint32_t index);
 void* buildUnaryExpression(qsym::ExprRef ref, int kind, void* first);
 void* buildBinaryExpression(qsym::ExprRef ref, int kind, void* first, void* second);
 void* buildTernaryExpression(qsym::ExprRef ref, int kind, void* first, void* second, void* third);

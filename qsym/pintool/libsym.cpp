@@ -318,10 +318,10 @@ public:
     }
   }
 
-  Status buildSymbolicIntegerByteExpression(ServerContext *context,
-                                            const InputIndex *request,
+  Status buildSymbolicIntegerExpression(ServerContext *context,
+                                            const IntegerSymbolicValue *request,
                                             ExpressionRef *reply) {
-    return execute(buildSymbolicIntegerByteExpressionType, request, reply);
+    return execute(buildSymbolicIntegerExpressionType, request, reply);
   }
 
   Status buildConcreteIntegerExpression(ServerContext *context,
@@ -374,9 +374,9 @@ public:
     return execute(childType, request, reply);
   }
 
-  Status inputIndex(ServerContext *context, const ExpressionRef *request,
-               InputIndex* reply) {
-    return execute(inputIndexType, request, reply);
+  Status symbolicIntegerValue(ServerContext *context, const ExpressionRef *request,
+               IntegerSymbolicValue* reply) {
+    return execute(symbolicIntegerValueType, request, reply);
   }
 
   Status concreteIntegerValue(ServerContext *context, const ExpressionRef *request,
@@ -427,11 +427,12 @@ void* buildConcreteBoolExpression(qsym::ExprRef ref, bool value) {
     return reply;
 }
 
-void* buildSymbolicIntegerByteExpression(qsym::ExprRef ref, uint32_t index) {
-    InputIndex request;
-    request.set_index(index);
+void* buildSymbolicIntegerExpression(qsym::ExprRef ref, uint32_t index) {
+    IntegerSymbolicValue request;
+    request.set_name(std::to_string(index));
+    request.set_bits(8);
     ExpressionRef* reply = new ExpressionRef();
-    stub.buildSymbolicIntegerByteExpression(nullptr, &request, reply);
+    stub.buildSymbolicIntegerExpression(nullptr, &request, reply);
     // idToRef[reply->id()] = ref;
     return reply;
 }
@@ -584,9 +585,9 @@ void setShadowExpr(void* expr, qsym::ExprRef ref) {
 
 uint32_t getReadIndex(void* e) {
     ExpressionRef* request = (ExpressionRef*) e;
-    InputIndex reply;
-    stub.inputIndex(nullptr, request, &reply);
-    return reply.index();
+    IntegerSymbolicValue reply;
+    stub.symbolicIntegerValue(nullptr, request, &reply);
+    return atoi(reply.name().c_str());
 }
 
 uint64_t getConcreteIntegerValue(void* e) {

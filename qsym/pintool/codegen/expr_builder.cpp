@@ -367,7 +367,7 @@ ExprRef BaseExprBuilder::createRead(ADDRINT off) {
     cache.resize(off + 1);
 
   if (cache[off] == NULL) {
-    void* shadow = buildSymbolicIntegerByteExpression(nullptr, off);
+    void* shadow = buildSymbolicIntegerExpression(nullptr, off);
     Kind kind = (Kind) getKind(shadow);
     cache[off] = kind == Read 
       ? std::make_shared<ReadExpr>(off)
